@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mausam 🌧️</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    /* Rain animation */
+    .rain {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .drop {
+      position: absolute;
+      width: 2px;
+      height: 15px;
+      background: rgba(0, 212, 255, 0.6);
+      bottom: 100%;
+      animation: fall linear infinite;
+    }
+    @keyframes fall {
+      to { transform: translateY(100vh); }
+    }
+
+    /* App Box */
+    .weather-app {
+      position: relative;
+      z-index: 2;
+      background: rgba(20, 20, 20, 0.85);
+      padding: 25px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+      width: 520px;
+      animation: fadeIn 1s ease;
+    }
+    h2 {
+      margin-bottom: 15px;
+      font-size: 32px;
+      color: #00d4ff;
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 10px #00d4ff; }
+      to { text-shadow: 0 0 20px #00aacc, 0 0 30px #00d4ff; }
+    }
+    input {
+      padding: 12px;
+      width: 75%;
+      border: none;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      outline: none;
+      background: #1e1e1e;
+      color: #fff;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      background: #00d4ff;
+      color: black;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #00aacc;
+      transform: scale(1.05);
+    }
+
+    .weather-info {
+      margin-top: 20px;
+      animation: slideUp 0.8s ease;
+    }
+    .forecast {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+    .day {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 10px;
+      border-radius: 12px;
+      font-size: 14px;
+      transition: transform 0.3s ease, background 0.3s ease;
+    }
+    /* Different hover colors */
+    .day:nth-child(1):hover { background: rgba(0, 212, 255, 0.3); transform: scale(1.05); }
+    .day:nth-child(2):hover { background: rgba(255, 0, 200, 0.3); transform: scale(1.05); }
+    .day:nth-child(3):hover { background: rgba(0, 255, 100, 0.3); transform: scale(1.05); }
+    .day:nth-child(4):hover { background: rgba(255, 180, 0, 0.3); transform: scale(1.05); }
+    .day:nth-child(5):hover { background: rgba(180, 0, 255, 0.3); transform: scale(1.05); }
+
+    .loading {
+      margin-top: 15px;
+      font-size: 16px;
+      color: #00d4ff;
+      animation: blink 1s infinite;
+    }
+
+    /* Alert Box */
+    .alert {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: bold;
+      animation: pulseAlert 1s infinite alternate;
+      display: none;
+    }
+    .alert.red {
+      background: rgba(255,0,0,0.2);
+      border-left: 6px solid red;
+      color: #ff4d4d;
+    }
+    .alert.yellow {
+      background: rgba(255, 200, 0, 0.2);
+      border-left: 6px solid #ffc107;
+      color: #ffc107;
+    }
+    .alert.green {
+      background: rgba(0, 255, 100, 0.2);
+      border-left: 6px solid #00ff88;
+      color: #00ff88;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: scale(0.9);}
+      to {opacity: 1; transform: scale(1);}
+    }
+    @keyframes slideUp {
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+    @keyframes blink {
+      50% {opacity: 0.3;}
+    }
+    @keyframes pulseAlert {
+      from { transform: scale(1); }
+      to { transform: scale(1.05); }
+    }
+  </style>
+</head>
+<body>
+  <div class="rain" id="rain"></div>
+
+  <div class="weather-app">
+    <h2>🌧️ Mausam</h2>
+    <input type="text" id="cityInput" placeholder="Enter city name">
+    <button onclick="getWeather()">Get Weather</button>
+    
+    <div id="loading" class="loading"></div>
+    <div id="alertBox" class="alert"></div>
+    <div class="weather-info" id="weatherInfo"></div>
+    <div class="forecast" id="forecast"></div>
+  </div>
+
+  <script>
+    // Rain effect
+    function createRain() {
+      const rain = document.getElementById("rain");
+      for (let i = 0; i < 80; i++) {
+        const drop = document.createElement("div");
+        drop.classList.add("drop");
+        drop.style.left = Math.random() * 100 + "vw";
+        drop.style.animationDuration = (0.5 + Math.random()) + "s";
+        drop.style.animationDelay = Math.random() + "s";
+        rain.appendChild(drop);
+      }
+    }
+    createRain();
+
+    // Weather codes mapping
+    const weatherCodes = {
+      0: "☀️ Clear sky",
+      1: "🌤️ Mainly clear",
+      2: "⛅ Partly cloudy",
+      3: "☁️ Overcast",
+      45: "🌫️ Fog",
+      48: "🌫️ Foggy",
+      51: "🌦️ Light drizzle",
+      61: "🌧️ Rain",
+      71: "❄️ Snow",
+      80: "🌧️ Showers",
+      95: "⛈️ Thunderstorm"
+    };
+
+    async function getWeather() {
+      const city = document.getElementById("cityInput").value;
+      if (!city) {
+        alert("Please enter a city name!");
+        return;
+      }
+
+      document.getElementById("loading").innerText = "⏳ Fetching weather...";
+      document.getElementById("weatherInfo").innerHTML = "";
+      document.getElementById("forecast").innerHTML = "";
+      document.getElementById("alertBox").style.display = "none";
+
+      try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}`);
+        const geoData = await geoRes.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+          document.getElementById("loading").innerText = "⚠️ City not found";
+          return;
+        }
+
+        const { latitude, longitude, name, country } = geoData.results[0];
+
+        const weatherRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`
+        );
+        const weatherData = await weatherRes.json();
+
+        document.getElementById("loading").innerText = "";
+
+        const current = weatherData.current_weather;
+        document.getElementById("weatherInfo").innerHTML = `
+          <h3>${name}, ${country}</h3>
+          <p><strong>Now:</strong> ${current.temperature}°C | ${weatherCodes[current.weathercode] || "🌍 Unknown"}</p>
+          <p><strong>Wind:</strong> ${current.windspeed} km/h</p>
+        `;
+
+        // Alerts
+        const alertBox = document.getElementById("alertBox");
+        if (current.weathercode >= 80 || current.weathercode === 95) {
+          alertBox.className = "alert red";
+          alertBox.innerText = "🚨 Red Alert: Severe weather! Stay indoors and take precautions.";
+          alertBox.style.display = "block";
+        } else if (current.weathercode === 61 || current.weathercode === 71) {
+          alertBox.className = "alert yellow";
+          alertBox.innerText = "⚠️ Warning: Rain/Snow expected. Stay safe and avoid unnecessary travel.";
+          alertBox.style.display = "block";
+        } else {
+          alertBox.className = "alert green";
+          alertBox.innerText = "✅ Weather looks fine. Enjoy your day!";
+          alertBox.style.display = "block";
+        }
+
+        // Forecast
+        let forecastHTML = "";
+        for (let i = 0; i < 5; i++) {
+          forecastHTML += `
+            <div class="day">
+              <p><strong>${weatherData.daily.time[i]}</strong></p>
+              <p>${weatherCodes[weatherData.daily.weathercode[i]] || "🌍"}</p>
+              <p>🌡️ ${weatherData.daily.temperature_2m_min[i]}°C - ${weatherData.daily.temperature_2m_max[i]}°C</p>
+            </div>
+          `;
+        }
+        document.getElementById("forecast").innerHTML = forecastHTML;
+
+      } catch (error) {
+        console.error("Error fetching weather:", error);
+        document.getElementById("loading").innerText = "⚠️ Failed to fetch data!";
+      }
+    }
+  </script>
+</body>
+</html>
